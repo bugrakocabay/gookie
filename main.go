@@ -7,31 +7,41 @@ import (
 	"time"
 )
 
-func getIPData() {
-	ip, err := getData("https://api64.ipify.org")
+type IPData struct {
+	IP      string
+	Country string
+	City    string
+}
+
+func getIPData() (IPData, error) {
+	ip, err := fetchData("https://api64.ipify.org")
 	if err != nil {
 		fmt.Printf("Error retrieving IP: %s", err)
-		return
+		return IPData{}, err
 	}
 
-	country, err := getData(fmt.Sprintf("https://ipapi.co/%s/country_name", ip))
+	country, err := fetchData(fmt.Sprintf("https://ipapi.co/%s/country_name", ip))
 	if err != nil {
 		fmt.Printf("Error retrieving Country: %s", err)
-		return
+		return IPData{}, err
 	}
 
 	time.Sleep(time.Millisecond * 500)
 
-	city, err := getData(fmt.Sprintf("https://ipapi.co/%s/city", ip))
+	city, err := fetchData(fmt.Sprintf("https://ipapi.co/%s/city", ip))
 	if err != nil {
 		fmt.Printf("Error retrieving City: %s", err)
-		return
+		return IPData{}, err
 	}
 
-	fmt.Printf("IP: %s\nCountry: %s\nCity: %s\n", ip, country, city)
+	return IPData{
+		IP:      ip,
+		Country: country,
+		City:    city,
+	}, nil
 }
 
-func getData(url string) (string, error) {
+func fetchData(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
