@@ -1,45 +1,13 @@
-package main
+package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"os/user"
-	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
-func main() {
-	cookieData, err := getCookies()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jsonData, err := json.Marshal(cookieData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.WriteFile("data.json", jsonData, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("JSON data saved to file.")
-
-}
-
-type UserData struct {
-	OSUser user.User
-	IPData IPData
-}
-
-func getOsUserData() (*user.User, error) {
+func GetOsUserData() (*user.User, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return &user.User{}, err
@@ -48,38 +16,34 @@ func getOsUserData() (*user.User, error) {
 	}
 }
 
-type IPData struct {
-	IP      string
-	Country string
-	City    string
-}
-
-func getIPData() (IPData, error) {
+func GetIPData() (string, error) {
 	ip, err := fetchData("https://api64.ipify.org")
 	if err != nil {
 		fmt.Printf("Error retrieving IP: %s", err)
-		return IPData{}, err
+		return "", err
 	}
 
+	return ip, nil
+}
+
+func GetCountry(ip string) (string, error) {
 	country, err := fetchData(fmt.Sprintf("https://ipapi.co/%s/country_name", ip))
 	if err != nil {
 		fmt.Printf("Error retrieving Country: %s", err)
-		return IPData{}, err
+		return "", err
 	}
 
-	time.Sleep(time.Millisecond * 500)
+	return country, nil
+}
 
+func GetCity(ip string) (string, error) {
 	city, err := fetchData(fmt.Sprintf("https://ipapi.co/%s/city", ip))
 	if err != nil {
 		fmt.Printf("Error retrieving City: %s", err)
-		return IPData{}, err
+		return "", err
 	}
 
-	return IPData{
-		IP:      ip,
-		Country: country,
-		City:    city,
-	}, nil
+	return city, nil
 }
 
 func fetchData(url string) (string, error) {
