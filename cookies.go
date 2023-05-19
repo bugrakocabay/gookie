@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/sha1"
 	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/keybase/go-keychain"
 	"log"
+
+	"github.com/havoc-io/go-keytar"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 type Cookie struct {
@@ -23,10 +27,51 @@ type Cookie struct {
 	EncryptedValue []byte `json:"encryptedValue"`
 }
 
-const (
-	length = 16
-	iv     = "                "
+var (
+	salt       = "saltysalt"
+	iterations = 1003
+	keyLength  = 16
 )
+
+func getDerivedKey() ([]byte, error) {
+	keychain, err := keytar.GetKeychain()
+	if err != nil {
+		return nil, err
+	}
+	chromePassword, err := keychain.GetPassword("Chrome Safe Storage", "Chrome")
+	if err != nil {
+		return nil, err
+	}
+	key := pbkdf2.Key([]byte(chromePassword), []byte(salt), iterations, keyLength, sha1.New)
+	return key, nil
+}
+
+func PKCS5UnPadding(src []byte) ([]byte, error) {
+	length := len(src)
+	paddedData := int(src[length-1])
+	if paddedData > length {
+		return nil, errors.New("invalid padding size")
+	}
+	return src[:(length - paddedData)], nil
+}
+
+func chromeDecrypt(key []byte, encrypted []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	iv := bytes.Repeat([]byte{' '}, 16)
+	blockMode := cipher.NewCBCDecrypter(block, iv)
+	origData := make([]byte, len(encrypted))
+	blockMode.CryptBlocks(origData, encrypted)
+	origData, err = PKCS5UnPadding(origData)
+	if err != nil {
+		return "", err
+	}
+
+	return string(origData), nil
+}
 
 func getCookies() (cookies []Cookie, err error) {
 	osUser, _ := getOsUserData()
@@ -64,79 +109,16 @@ func getCookies() (cookies []Cookie, err error) {
 			cookie.SameSite = "Unknown"
 		}
 		cookie.Expires = (cookie.Expires / 1000000) - 11644473600
-		cookie.decryptCookie()
+		if len(cookie.EncryptedValue) > 0 {
+			derivedKey, err := getDerivedKey()
+			cookie.Value, err = chromeDecrypt(derivedKey, cookie.EncryptedValue[3:])
+			if nil != err {
+				log.Fatal(err)
+				return nil, err
+			}
+		}
 
 		cookies = append(cookies, cookie)
 	}
-
 	return
-}
-
-func (c *Cookie) decryptCookie() {
-	if c.Value > "" {
-		return
-	}
-
-	if len(c.EncryptedValue) > 0 {
-		var decryptedValue = decryptValue(c.EncryptedValue)
-		c.Value = decryptedValue
-	}
-}
-
-func decryptValue(encryptedValue []byte) string {
-	if bytes.Equal(encryptedValue[0:3], []byte{'v', '1', '0'}) {
-		encryptedValue = encryptedValue[3:]
-		key, err := getDecryptionKey()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		block, err := aes.NewCipher(key)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		decrypted := make([]byte, len(encryptedValue))
-		cbc := cipher.NewCBCDecrypter(block, []byte(iv))
-		cbc.CryptBlocks(decrypted, encryptedValue)
-
-		plainText, err := aesStripPadding(decrypted)
-		if err != nil {
-			fmt.Println("Error decrypting:", err)
-			return ""
-		}
-		return string(plainText)
-	} else {
-		return ""
-	}
-}
-
-func aesStripPadding(data []byte) ([]byte, error) {
-	if len(data)%length != 0 {
-		return nil, fmt.Errorf("decrypted data block length is not a multiple of %d", length)
-	}
-	paddingLen := int(data[len(data)-1])
-	if paddingLen > 16 {
-		return nil, fmt.Errorf("invalid last block padding length: %d", paddingLen)
-	}
-	return data[:len(data)-paddingLen], nil
-}
-
-func getDecryptionKey() ([]byte, error) {
-	var err error
-
-	query := keychain.NewItem()
-	query.SetSecClass(keychain.SecClassGenericPassword)
-	query.SetService("Chrome Safe Storage")
-	query.SetAccount("Chrome")
-	query.SetMatchLimit(keychain.MatchLimitOne)
-	query.SetReturnData(true)
-	results, err := keychain.QueryItem(query)
-	if err != nil {
-		return []byte{}, err
-	} else if len(results) != 1 {
-		return []byte{}, fmt.Errorf("key not found")
-	}
-
-	return results[0].Data, nil
 }

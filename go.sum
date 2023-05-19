@@ -1,3 +1,7 @@
+github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe23fU=
+github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=
+github.com/havoc-io/go-keytar v0.0.0-20190805193312-c9afc30c49ac h1:eaeUF94PxN+op5u4b8qSUEHMORA8Dho4vHaU4MRD7Sg=
+github.com/havoc-io/go-keytar v0.0.0-20190805193312-c9afc30c49ac/go.mod h1:WUcW8txQ1HQfzCSD8PwGkPAHcz6rl/lX5nRRC+9utUo=
 github.com/keybase/go-keychain v0.0.0-20230307172405-3e4884637dd1 h1:yi1W8qcFJ2plmaGJFN1npm0KQviWPMCtQOYuwDT6Swk=
 github.com/keybase/go-keychain v0.0.0-20230307172405-3e4884637dd1/go.mod h1:qDHUvIjGZJUtdPtuP4WMu5/U4aVWbFw1MhlkJqCGmCQ=
 github.com/mattn/go-sqlite3 v1.14.16 h1:yOQRA0RpS5PFz/oikGwBEqvAWhWg5ufRz4ETLjwpU1Y=
