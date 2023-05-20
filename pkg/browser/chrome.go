@@ -7,7 +7,7 @@ import (
 	"errors"
 )
 
-func pkcs5UnPadding(src []byte) ([]byte, error) {
+func removePKCS5Padding(src []byte) ([]byte, error) {
 	length := len(src)
 	paddedData := int(src[length-1])
 	if paddedData > length {
@@ -17,19 +17,19 @@ func pkcs5UnPadding(src []byte) ([]byte, error) {
 }
 
 func ChromeDecrypt(key []byte, encrypted []byte) (string, error) {
-	block, err := aes.NewCipher(key)
+	cipherBlock, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
 
 	iv := bytes.Repeat([]byte{' '}, 16)
-	blockMode := cipher.NewCBCDecrypter(block, iv)
-	origData := make([]byte, len(encrypted))
-	blockMode.CryptBlocks(origData, encrypted)
-	origData, err = pkcs5UnPadding(origData)
+	decrypter := cipher.NewCBCDecrypter(cipherBlock, iv)
+	decryptedData := make([]byte, len(encrypted))
+	decrypter.CryptBlocks(decryptedData, encrypted)
+	decryptedData, err = removePKCS5Padding(decryptedData)
 	if err != nil {
 		return "", err
 	}
 
-	return string(origData), nil
+	return string(decryptedData), nil
 }

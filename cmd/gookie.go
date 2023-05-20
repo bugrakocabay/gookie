@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
-	"os"
 
 	"gookie/pkg/data"
+	"gookie/pkg/utils"
 )
 
 func main() {
@@ -15,16 +13,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	jsonData, err := json.Marshal(cookieData)
+	err = utils.JSONSaver(cookieData, "cookies.json")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	err = os.WriteFile("data.json", jsonData, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("JSON data saved to file.")
-
 }

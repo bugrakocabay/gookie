@@ -3,7 +3,6 @@ package data
 import (
 	"database/sql"
 	"fmt"
-
 	_ "github.com/mattn/go-sqlite3"
 	"gookie/pkg/browser"
 	"gookie/pkg/utils"
@@ -15,9 +14,10 @@ type Cookie struct {
 	Domain         string `json:"domain"`
 	Path           string `json:"path"`
 	SameSite       string `json:"sameSite"`
-	Expires        int64  `json:"expires"`
-	Secure         int64  `json:"secure"`
-	HttpOnly       int64  `json:"httpOnly"`
+	Expires        string `json:"expires"`
+	IsExpired      bool   `json:"isExpired"`
+	IsSecure       bool   `json:"isSecure"`
+	HttpOnly       bool   `json:"httpOnly"`
 	EncryptedValue []byte `json:"encryptedValue"`
 }
 
@@ -44,24 +44,19 @@ func GetCookies() ([]Cookie, error) {
 
 	for rows.Next() {
 		var cookie Cookie
-		err = rows.Scan(&cookie.Domain, &cookie.Expires, &cookie.HttpOnly, &cookie.Name, &cookie.Path, &cookie.SameSite, &cookie.Secure, &cookie.Value, &cookie.EncryptedValue)
+		var expires, httpOnly, secure int64
+
+		err = rows.Scan(&cookie.Domain, &expires, &httpOnly, &cookie.Name, &cookie.Path, &cookie.SameSite, &secure, &cookie.Value, &cookie.EncryptedValue)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %w", err)
 		}
 
-		switch cookie.SameSite {
-		case "-1":
-			cookie.SameSite = "Unspecified"
-		case "0":
-			cookie.SameSite = "None"
-		case "1":
-			cookie.SameSite = "Lax"
-		case "2":
-			cookie.SameSite = "Strict"
-		default:
-			cookie.SameSite = "Unknown"
-		}
-		cookie.Expires = (cookie.Expires / 1000000) - 11644473600
+		cookie.SameSite = utils.SameSiteFormat(cookie.SameSite)
+		cookie.Expires = utils.EpochToTime((expires / 1000000) - 11644473600)
+		cookie.IsExpired = utils.IsExpired(expires)
+		cookie.HttpOnly = utils.IntToBool(httpOnly)
+		cookie.IsSecure = utils.IntToBool(secure)
+
 		if len(cookie.EncryptedValue) > 0 {
 			derivedKey, err := utils.GetChromeKey()
 			if err != nil {
