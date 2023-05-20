@@ -1,10 +1,13 @@
 package browser
 
 import (
+	"crypto/sha1"
 	"database/sql"
 	"fmt"
 
+	"github.com/havoc-io/go-keytar"
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/pbkdf2"
 	"gookie/pkg/utils"
 )
 
@@ -58,7 +61,7 @@ func ReadChromeCookies() ([]Cookie, error) {
 		cookie.IsSecure = utils.IntToBool(secure)
 
 		if len(cookie.EncryptedValue) > 0 {
-			derivedKey, err := utils.GetChromeKey()
+			derivedKey, err := getChromeKey()
 			if err != nil {
 				return nil, err
 			}
@@ -71,4 +74,25 @@ func ReadChromeCookies() ([]Cookie, error) {
 		cookies = append(cookies, cookie)
 	}
 	return cookies, nil
+}
+
+var (
+	salt       = "saltysalt"
+	iterations = 1003
+	keyLength  = 16
+)
+
+func getChromeKey() ([]byte, error) {
+	keychain, err := keytar.GetKeychain()
+	if err != nil {
+		return nil, err
+	}
+
+	chromePassword, err := keychain.GetPassword("Chrome Safe Storage", "Chrome")
+	if err != nil {
+		return nil, err
+	}
+	
+	key := pbkdf2.Key([]byte(chromePassword), []byte(salt), iterations, keyLength, sha1.New)
+	return key, nil
 }

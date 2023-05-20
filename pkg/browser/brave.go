@@ -1,10 +1,13 @@
 package browser
 
 import (
+	"crypto/sha1"
 	"database/sql"
 	"fmt"
 
+	"github.com/havoc-io/go-keytar"
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/pbkdf2"
 	"gookie/pkg/utils"
 )
 
@@ -45,7 +48,7 @@ func ReadBraveCookies() ([]Cookie, error) {
 		cookie.IsSecure = utils.IntToBool(secure)
 
 		if len(cookie.EncryptedValue) > 0 {
-			derivedKey, err := utils.GetBraveKey()
+			derivedKey, err := getBraveKey()
 			if err != nil {
 				return nil, err
 			}
@@ -58,4 +61,17 @@ func ReadBraveCookies() ([]Cookie, error) {
 		cookies = append(cookies, cookie)
 	}
 	return cookies, nil
+}
+
+func getBraveKey() ([]byte, error) {
+	keychain, err := keytar.GetKeychain()
+	if err != nil {
+		return nil, err
+	}
+	bravePassword, err := keychain.GetPassword("Brave Safe Storage", "Brave")
+	if err != nil {
+		return nil, err
+	}
+	key := pbkdf2.Key([]byte(bravePassword), []byte(salt), iterations, keyLength, sha1.New)
+	return key, nil
 }

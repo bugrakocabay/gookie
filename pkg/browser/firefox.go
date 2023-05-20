@@ -2,10 +2,11 @@ package browser
 
 import (
 	"errors"
-	"gookie/pkg/utils"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gookie/pkg/utils"
 )
 
 func getDefaultFirefoxProfile() (string, error) {
@@ -41,3 +42,26 @@ func getDefaultFirefoxProfile() (string, error) {
 
 	return "", errors.New("could not find default profile")
 }
+
+//func GetFirefoxKey() ([]byte, error) {
+//	keychain, err := keytar.GetKeychain()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	profileID, err := getDefaultFirefoxProfile()
+//	if err != nil {
+//		return nil, err
+//	}
+//	if strings.HasSuffix(profileID, ".default-release") {
+//		profileID = strings.TrimSuffix(profileID, ".default-release")
+//	}
+//
+//	firefoxPassword, err := keychain.GetPassword("org.mozilla.firefox", profileID)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	key := pbkdf2.Key([]byte(firefoxPassword), []byte("saltysalt"), 1, 16, sha1.New)
+//	return key, nil
+//}
