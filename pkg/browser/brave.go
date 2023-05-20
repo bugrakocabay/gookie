@@ -1,32 +1,19 @@
-package data
+package browser
 
 import (
 	"database/sql"
 	"fmt"
+
 	_ "github.com/mattn/go-sqlite3"
-	"gookie/pkg/browser"
 	"gookie/pkg/utils"
 )
 
-type Cookie struct {
-	Name           string `json:"name"`
-	Value          string `json:"value"`
-	Domain         string `json:"domain"`
-	Path           string `json:"path"`
-	SameSite       string `json:"sameSite"`
-	Expires        string `json:"expires"`
-	IsExpired      bool   `json:"isExpired"`
-	IsSecure       bool   `json:"isSecure"`
-	HttpOnly       bool   `json:"httpOnly"`
-	EncryptedValue []byte `json:"encryptedValue"`
-}
-
-func GetCookies() ([]Cookie, error) {
+func ReadBraveCookies() ([]Cookie, error) {
 	osUser, err := utils.GetOsUserData()
 	if err != nil {
 		return nil, err
 	}
-	cookiesPath := fmt.Sprintf("/Users/%s/Library/Application Support/Google/Chrome/Default/Cookies", osUser.Username)
+	cookiesPath := fmt.Sprintf("/Users/%s/Library/Application Support/BraveSoftware/Brave-Browser/Default/Cookies", osUser.Username)
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -58,11 +45,11 @@ func GetCookies() ([]Cookie, error) {
 		cookie.IsSecure = utils.IntToBool(secure)
 
 		if len(cookie.EncryptedValue) > 0 {
-			derivedKey, err := utils.GetChromeKey()
+			derivedKey, err := utils.GetBraveKey()
 			if err != nil {
 				return nil, err
 			}
-			cookie.Value, err = browser.ChromeDecrypt(derivedKey, cookie.EncryptedValue[3:])
+			cookie.Value, err = chromiumDecrypt(derivedKey, cookie.EncryptedValue[3:])
 			if err != nil {
 				return nil, err
 			}

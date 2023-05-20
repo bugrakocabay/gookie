@@ -3,12 +3,12 @@ package main
 import (
 	"log"
 
-	"gookie/pkg/data"
+	"gookie/pkg/browser"
 	"gookie/pkg/utils"
 )
 
 func main() {
-	cookieData, err := data.GetCookies()
+	cookieData, err := browser.ReadBraveCookies()
 	if err != nil {
 		log.Fatal(err)
 	}

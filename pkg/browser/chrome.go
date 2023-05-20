@@ -1,35 +1,74 @@
 package browser
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"errors"
+	"database/sql"
+	"fmt"
+
+	_ "github.com/mattn/go-sqlite3"
+	"gookie/pkg/utils"
 )
 
-func removePKCS5Padding(src []byte) ([]byte, error) {
-	length := len(src)
-	paddedData := int(src[length-1])
-	if paddedData > length {
-		return nil, errors.New("invalid padding size")
-	}
-	return src[:(length - paddedData)], nil
+type Cookie struct {
+	Name           string `json:"name"`
+	Value          string `json:"value"`
+	Domain         string `json:"domain"`
+	Path           string `json:"path"`
+	SameSite       string `json:"sameSite"`
+	Expires        string `json:"expires"`
+	IsExpired      bool   `json:"isExpired"`
+	IsSecure       bool   `json:"isSecure"`
+	HttpOnly       bool   `json:"httpOnly"`
+	EncryptedValue []byte `json:"encryptedValue"`
 }
 
-func ChromeDecrypt(key []byte, encrypted []byte) (string, error) {
-	cipherBlock, err := aes.NewCipher(key)
+func ReadChromeCookies() ([]Cookie, error) {
+	osUser, err := utils.GetOsUserData()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	cookiesPath := fmt.Sprintf("/Users/%s/Library/Application Support/Google/Chrome/Default/Cookies", osUser.Username)
 
-	iv := bytes.Repeat([]byte{' '}, 16)
-	decrypter := cipher.NewCBCDecrypter(cipherBlock, iv)
-	decryptedData := make([]byte, len(encrypted))
-	decrypter.CryptBlocks(decryptedData, encrypted)
-	decryptedData, err = removePKCS5Padding(decryptedData)
+	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	defer dbConn.Close()
 
-	return string(decryptedData), nil
+	rows, err := dbConn.Query("SELECT host_key as Domain, expires_utc as Expires, is_httponly as HttpOnly, name as Name, path as Path, samesite as SameSite, is_secure as Secure, value as Value, encrypted_value as EncryptedValue FROM cookies;")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var cookies []Cookie
+
+	for rows.Next() {
+		var cookie Cookie
+		var expires, httpOnly, secure int64
+
+		err = rows.Scan(&cookie.Domain, &expires, &httpOnly, &cookie.Name, &cookie.Path, &cookie.SameSite, &secure, &cookie.Value, &cookie.EncryptedValue)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+
+		cookie.SameSite = utils.SameSiteFormat(cookie.SameSite)
+		cookie.Expires = utils.EpochToTime((expires / 1000000) - 11644473600)
+		cookie.IsExpired = utils.IsExpired(expires)
+		cookie.HttpOnly = utils.IntToBool(httpOnly)
+		cookie.IsSecure = utils.IntToBool(secure)
+
+		if len(cookie.EncryptedValue) > 0 {
+			derivedKey, err := utils.GetChromeKey()
+			if err != nil {
+				return nil, err
+			}
+			cookie.Value, err = chromiumDecrypt(derivedKey, cookie.EncryptedValue[3:])
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		cookies = append(cookies, cookie)
+	}
+	return cookies, nil
 }
