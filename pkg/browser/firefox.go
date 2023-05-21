@@ -1,13 +1,58 @@
 package browser
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"gookie/pkg/utils"
 )
+
+func ReadFirefoxCookies() ([]Cookie, error) {
+	osUser, err := utils.GetOsUserData()
+	if err != nil {
+		return nil, err
+	}
+
+	firefoxProfile, err := getDefaultFirefoxProfile()
+	if err != nil {
+		return nil, err
+	}
+	cookiesPath := fmt.Sprintf("/Users/%s/Library/Application Support/Firefox/Profiles/%s/cookies.sqlite", osUser.Username, firefoxProfile)
+
+	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
+	if err != nil {
+		return nil, err
+	}
+	defer dbConn.Close()
+
+	rows, err := dbConn.Query("SELECT host as Domain, expiry as Expires, isHttpOnly as HttpOnly, name as Name, path as Path, samesite as SameSite, isSecure as Secure, value as Value FROM moz_cookies;")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var cookies []Cookie
+
+	for rows.Next() {
+		var cookie Cookie
+		var expires, httpOnly, secure int64
+
+		err = rows.Scan(&cookie.Domain, &expires, &httpOnly, &cookie.Name, &cookie.Path, &cookie.SameSite, &secure, &cookie.Value)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+
+		cookie.EncryptedValue = nil
+		cookie.IsExpired = utils.IsExpired(expires)
+
+		cookies = append(cookies, cookie)
+	}
+	return cookies, nil
+}
 
 func getDefaultFirefoxProfile() (string, error) {
 	osUserData, err := utils.GetOsUserData()
