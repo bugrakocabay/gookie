@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+
 	"gookie/pkg/browser"
 )
 
 func main() {
-	firefoxCookies, err := browser.ReadChromeCookies()
+	cookies, err := browser.ReadChromeCookies()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(firefoxCookies)
+	fmt.Println(cookies)
 }
