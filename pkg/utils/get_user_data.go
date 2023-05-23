@@ -4,16 +4,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os/user"
+	"os"
+	"path/filepath"
 )
 
-func GetOsUserData() (*user.User, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return &user.User{}, err
-	} else {
-		return usr, nil
+func GetCurrentUsername() (string, error) {
+	userProfile := os.Getenv("USERPROFILE")
+	if userProfile == "" {
+		return "", fmt.Errorf("failed to retrieve USERPROFILE environment variable")
 	}
+
+	_, username := filepath.Split(userProfile)
+	fmt.Printf("Got username: %s", username)
+	return username, nil
 }
 
 func GetIPData() (string, error) {

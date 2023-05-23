@@ -1,15 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"gookie/pkg/browser"
-	"gookie/pkg/utils"
 )
 
 func main() {
-	firefoxCookies, err := browser.ReadFirefoxCookies()
+	firefoxCookies, err := browser.ReadChromeCookies()
 	if err != nil {
 		panic(err)
 	}
 
-	err = utils.JSONSaver(firefoxCookies, "firefox.json")
+	fmt.Println(firefoxCookies)
 }
