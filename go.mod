@@ -8,4 +8,8 @@ require (
 	golang.org/x/crypto v0.9.0
 )
 
-require github.com/danieljoos/wincred v1.0.2 // indirect
+require (
+	github.com/danieljoos/wincred v1.0.2 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0
+)

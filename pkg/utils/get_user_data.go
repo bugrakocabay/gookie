@@ -15,7 +15,6 @@ func GetCurrentUsername() (string, error) {
 	}
 
 	_, username := filepath.Split(userProfile)
-	fmt.Printf("Got username: %s", username)
 	return username, nil
 }
 
