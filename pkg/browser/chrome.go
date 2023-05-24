@@ -84,8 +84,15 @@ func getAesGCMKey() []byte {
 
 func decryptValue(data []byte) ([]byte, error) {
 	if bytes.Equal(data[0:3], []byte{'v', '1', '0'}) {
-		aesBlock, _ := aes.NewCipher(aesKey)
-		aesGCM, _ := cipher.NewGCM(aesBlock)
+		aesKey = getAesGCMKey()
+		aesBlock, err := aes.NewCipher(aesKey)
+		if err != nil {
+			return nil, fmt.Errorf("error creating cipher block: %w", err)
+		}
+		aesGCM, err := cipher.NewGCM(aesBlock)
+		if err != nil {
+			return nil, fmt.Errorf("error creating GCM: %w", err)
+		}
 
 		nonce := data[3:15]
 		encryptedData := data[15:]
@@ -144,7 +151,8 @@ func ReadChromeCookies() ([]Cookie, error) {
 			return nil, fmt.Errorf("error decrypting: %w", err)
 		}
 		cookie.Value = string(decrypted)
-
+		cookie.EncryptedValue = nil
+		
 		cookies = append(cookies, cookie)
 	}
 	return cookies, nil

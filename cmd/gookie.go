@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"gookie/pkg/utils"
 
 	"gookie/pkg/browser"
 )
@@ -12,5 +12,8 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(cookies)
+	err = utils.JSONSaver(cookies, "gookies")
+	if err != nil {
+		panic(err)
+	}
 }
