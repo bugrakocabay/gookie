@@ -68,7 +68,7 @@ func decryptValue(data []byte) ([]byte, error) {
 
 		plaintext, err := aesGCM.Open(nil, nonce, encryptedData, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error decrypting value: %w", err)
+			return nil, err
 		}
 
 		return plaintext, nil
