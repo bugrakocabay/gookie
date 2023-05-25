@@ -13,12 +13,12 @@ import (
 	"gookie/pkg/utils"
 )
 
-func ReadChromeCookies() ([]Cookie, error) {
+func ReadBraveCookies() ([]Cookie, error) {
 	osUser, err := utils.GetCurrentUsername()
 	if err != nil {
 		return nil, err
 	}
-	cookiesPath := fmt.Sprintf("C:\\Users\\%s\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", osUser)
+	cookiesPath := fmt.Sprintf("C:\\Users\\%s\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Network\\Cookies", osUser)
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -26,7 +26,7 @@ func ReadChromeCookies() ([]Cookie, error) {
 	}
 	defer dbConn.Close()
 
-	err = getAesGCMKeyChrome()
+	err = getAesGCMKeyBrave()
 	if err != nil {
 		return nil, err
 	}
@@ -67,13 +67,13 @@ func ReadChromeCookies() ([]Cookie, error) {
 	return cookies, nil
 }
 
-func getAesGCMKeyChrome() error {
+func getAesGCMKeyBrave() error {
 	path, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("error getting user cache directory: %w", err)
 	}
 
-	data, err := os.ReadFile(fmt.Sprintf("%s\\Google\\Chrome\\User Data\\Local State", path))
+	data, err := os.ReadFile(fmt.Sprintf("%s\\BraveSoftware\\Brave-Browser\\User Data\\Local State", path))
 	if err != nil {
 		return err
 	}
