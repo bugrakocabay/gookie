@@ -7,17 +7,10 @@ import (
 )
 
 func main() {
-	cookies, err := browser.ReadChromeCookies()
+	cookies, err := browser.ReadFirefoxCookies()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println(cookies)
-	fmt.Println("------------------")
-	cookies2, err := browser.ReadBraveCookies()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(cookies2)
 }
