@@ -1,16 +1,19 @@
 package main
 
 import (
-	"fmt"
+	"gookie/pkg/utils"
 
 	"gookie/pkg/browser"
 )
 
 func main() {
-	cookies, err := browser.ReadFirefoxCookies()
+	cookies, err := browser.ReadEdgeCookies()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(cookies)
+	err = utils.JSONSaver(cookies, "qwerty.json")
+	if err != nil {
+		panic(err)
+	}
 }

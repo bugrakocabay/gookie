@@ -30,11 +30,6 @@ func ReadFirefoxCookies() ([]Cookie, error) {
 	}
 	defer dbConn.Close()
 
-	err = getAesGCMKeyChrome()
-	if err != nil {
-		return nil, err
-	}
-
 	query := `SELECT host as Domain, expiry as Expires, isHttpOnly as HttpOnly, 
 			name as Name, path as Path, isSecure as Secure, 
 			value as Value FROM moz_cookies;`
