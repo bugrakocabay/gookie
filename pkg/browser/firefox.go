@@ -16,11 +16,13 @@ func ReadFirefoxCookies() ([]Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	osUser, err := utils.GetCurrentUsername()
 	if err != nil {
 		return nil, err
 	}
-	cookiesPath := fmt.Sprintf("C:\\Users\\%s\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\%s\\cookies.sqlite", osUser, profile)
+
+	cookiesPath := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Mozilla\\Firefox\\Profiles", profile, "cookies.sqlite")
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -32,9 +34,11 @@ func ReadFirefoxCookies() ([]Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := dbConn.Query(`SELECT host as Domain, expiry as Expires, isHttpOnly as HttpOnly, 
-		 					   name as Name, path as Path, isSecure as Secure, 
-		 					   value as Value FROM moz_cookies;`)
+
+	query := `SELECT host as Domain, expiry as Expires, isHttpOnly as HttpOnly, 
+			name as Name, path as Path, isSecure as Secure, 
+			value as Value FROM moz_cookies;`
+	rows, err := dbConn.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -49,11 +53,12 @@ func ReadFirefoxCookies() ([]Cookie, error) {
 		err = rows.Scan(&cookie.Domain, &expires, &httpOnly, &cookie.Name,
 			&cookie.Path, &secure, &cookie.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning row: %w", err)
+			return nil, err
 		}
 
-		cookie.IsExpired = utils.IsExpired(expires)
-		cookie.EncryptedValue = nil
+		cookie.Expires = utils.EpochToTime(expires)
+		cookie.HttpOnly = utils.IntToBool(httpOnly)
+		cookie.IsSecure = utils.IntToBool(secure)
 
 		cookies = append(cookies, cookie)
 	}
