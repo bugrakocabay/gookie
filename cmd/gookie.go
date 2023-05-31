@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cookies, err := browser.ReadEdgeCookies()
+	cookies, err := browser.ReadOperaCookies()
 	if err != nil {
 		panic(err)
 	}
