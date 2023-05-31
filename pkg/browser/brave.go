@@ -31,9 +31,9 @@ func ReadBraveCookies() ([]Cookie, error) {
 		return nil, err
 	}
 	rows, err := dbConn.Query(`SELECT host_key as Domain, expires_utc as Expires, 
-		is_httponly as HttpOnly, name as Name, path as Path, 
-		is_secure as Secure, value as Value, encrypted_value as EncryptedValue 
-		FROM cookies;`)
+                is_httponly as HttpOnly, name as Name, path as Path, 
+                is_secure as Secure, value as Value, encrypted_value as EncryptedValue 
+                FROM cookies;`)
 	if err != nil {
 		return nil, err
 	}

