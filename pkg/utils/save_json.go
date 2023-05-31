@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 )
@@ -12,7 +11,6 @@ func JSONSaver(data interface{}, fileName string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(jsonData)
 	err = os.WriteFile(fileName, jsonData, 0644)
 	if err != nil {
 		return err

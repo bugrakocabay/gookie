@@ -1,9 +1,8 @@
 package main
 
 import (
-	"gookie/pkg/utils"
-
 	"gookie/pkg/browser"
+	"gookie/pkg/utils"
 )
 
 func main() {
@@ -12,7 +11,7 @@ func main() {
 		panic(err)
 	}
 
-	err = utils.JSONSaver(cookies, "qwerty.json")
+	err = utils.JSONSaver(cookies, "file.json")
 	if err != nil {
 		panic(err)
 	}
