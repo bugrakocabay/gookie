@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
 	"gookie/pkg/utils"
@@ -18,7 +19,7 @@ func ReadBraveCookies() ([]Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	cookiesPath := fmt.Sprintf("C:\\Users\\%s\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Network\\Cookies", osUser)
+	cookiesPath := filepath.Join("C:\\Users", osUser, "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Network\\Cookies")
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -72,7 +73,7 @@ func ReadBravePasswords() ([]Password, error) {
 	if err != nil {
 		return nil, err
 	}
-	passwordsPath := fmt.Sprintf("C:\\Users\\%s\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Login Data", osUser)
+	passwordsPath := filepath.Join("C:\\Users", osUser, "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Login Data")
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", passwordsPath))
 	if err != nil {
@@ -117,7 +118,8 @@ func getAesGCMKeyBrave() error {
 		return fmt.Errorf("error getting user cache directory: %w", err)
 	}
 
-	data, err := os.ReadFile(fmt.Sprintf("%s\\BraveSoftware\\Brave-Browser\\User Data\\Local State", path))
+	localStatePath := filepath.Join(path, "\\BraveSoftware\\Brave-Browser\\User Data\\Local State")
+	data, err := os.ReadFile(localStatePath)
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"gookie/pkg/utils"
 	"os"
+	"path/filepath"
 )
 
 func ReadOperaCookies() ([]Cookie, error) {
@@ -16,7 +17,7 @@ func ReadOperaCookies() ([]Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	cookiesPath := fmt.Sprintf("C:\\Users\\%s\\AppData\\Roaming\\Opera Software\\Opera Stable\\Network\\Cookies", osUser)
+	cookiesPath := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Opera Software\\Opera Stable\\Network\\Cookies")
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -71,7 +72,9 @@ func getAesGCMKeyOpera() error {
 		return err
 	}
 
-	data, err := os.ReadFile(fmt.Sprintf("C:\\Users\\%s\\AppData\\Roaming\\Opera Software\\Opera Stable\\Local State", osUser))
+	localStatePath := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Opera Software\\Opera Stable\\Local State")
+	data, err := os.ReadFile(localStatePath)
+	//data, err := os.ReadFile(fmt.Sprintf("C:\\Users\\%s\\AppData\\Roaming\\Opera Software\\Opera Stable\\Local State", osUser))
 	if err != nil {
 		return err
 	}

@@ -61,12 +61,12 @@ func ReadFirefoxCookies() ([]Cookie, error) {
 }
 
 func getDefaultFirefoxProfile() (string, error) {
-	osUserData, err := utils.GetCurrentUsername()
+	osUser, err := utils.GetCurrentUsername()
 	if err != nil {
 		return "", err
 	}
 
-	profilesDir := fmt.Sprintf("C:\\Users\\%s\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles", osUserData)
+	profilesDir := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Mozilla\\Firefox\\Profiles")
 	profileFiles, err := os.ReadDir(profilesDir)
 	if err != nil {
 		return "", err
