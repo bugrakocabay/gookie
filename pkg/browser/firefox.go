@@ -12,10 +12,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/pbkdf2"
-	"gookie/pkg/utils"
 	"os"
 	"path/filepath"
+
+	"golang.org/x/crypto/pbkdf2"
+	"gookie/pkg/utils"
 )
 
 type LoginList struct {
@@ -84,6 +85,64 @@ type EncryptedDataSequence struct {
 type KeyData struct {
 	ASN1ObjectData ASN1Object
 	Data           []byte
+}
+
+func ReadFirefoxPasswords() ([]Password, error) {
+	profilePath, err := getActiveProfilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	credentials, err := FirefoxCrackLoginData(profilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return credentials, nil
+}
+
+func ReadFirefoxCookies() ([]Cookie, error) {
+	profilePath, err := getActiveProfilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	cookiesPath := filepath.Join(profilePath, "cookies.sqlite")
+
+	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
+	if err != nil {
+		return nil, err
+	}
+	defer dbConn.Close()
+
+	query := `SELECT host as Domain, expiry as Expires, isHttpOnly as HttpOnly, 
+			name as Name, path as Path, isSecure as Secure, 
+			value as Value FROM moz_cookies;`
+	rows, err := dbConn.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var cookies []Cookie
+
+	for rows.Next() {
+		var cookie Cookie
+		var expires, httpOnly, secure int64
+
+		err = rows.Scan(&cookie.Domain, &expires, &httpOnly, &cookie.Name,
+			&cookie.Path, &secure, &cookie.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		cookie.Expires = utils.EpochToTime(expires)
+		cookie.HttpOnly = utils.IntToBool(httpOnly)
+		cookie.IsSecure = utils.IntToBool(secure)
+
+		cookies = append(cookies, cookie)
+	}
+	return cookies, nil
 }
 
 func loadLoginsData(profilePath string) (LoginList, error) {
@@ -262,62 +321,4 @@ func getActiveProfilePath() (string, error) {
 	path = filepath.Join(path, activeDir)
 
 	return path, nil
-}
-
-func ReadFirefoxPasswords() ([]Password, error) {
-	profilePath, err := getActiveProfilePath()
-	if err != nil {
-		return nil, err
-	}
-
-	credentials, err := FirefoxCrackLoginData(profilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return credentials, nil
-}
-
-func ReadFirefoxCookies() ([]Cookie, error) {
-	profilePath, err := getActiveProfilePath()
-	if err != nil {
-		return nil, err
-	}
-
-	cookiesPath := filepath.Join(profilePath, "cookies.sqlite")
-
-	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
-	if err != nil {
-		return nil, err
-	}
-	defer dbConn.Close()
-
-	query := `SELECT host as Domain, expiry as Expires, isHttpOnly as HttpOnly, 
-			name as Name, path as Path, isSecure as Secure, 
-			value as Value FROM moz_cookies;`
-	rows, err := dbConn.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var cookies []Cookie
-
-	for rows.Next() {
-		var cookie Cookie
-		var expires, httpOnly, secure int64
-
-		err = rows.Scan(&cookie.Domain, &expires, &httpOnly, &cookie.Name,
-			&cookie.Path, &secure, &cookie.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		cookie.Expires = utils.EpochToTime(expires)
-		cookie.HttpOnly = utils.IntToBool(httpOnly)
-		cookie.IsSecure = utils.IntToBool(secure)
-
-		cookies = append(cookies, cookie)
-	}
-	return cookies, nil
 }

