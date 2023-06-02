@@ -10,6 +10,7 @@ import (
 
 func GetCurrentUsername() (string, error) {
 	userProfile := os.Getenv("USERPROFILE")
+
 	if userProfile == "" {
 		return "", fmt.Errorf("failed to retrieve USERPROFILE environment variable")
 	}

@@ -14,12 +14,12 @@ import (
 	"gookie/pkg/utils"
 )
 
-func ReadBraveCookies() ([]Cookie, error) {
+/*func ReadBraveCookies() ([]Cookie, error) {
 	osUser, err := utils.GetCurrentUsername()
 	if err != nil {
 		return nil, err
 	}
-	cookiesPath := filepath.Join("C:\\Users", osUser, "AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Network\\Cookies")
+	cookiesPath := filepath.Join("C:\\Users", osUser, "\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Network\\Cookies")
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -31,9 +31,9 @@ func ReadBraveCookies() ([]Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := dbConn.Query(`SELECT host_key as Domain, expires_utc as Expires, 
-                is_httponly as HttpOnly, name as Name, path as Path, 
-                is_secure as Secure, value as Value, encrypted_value as EncryptedValue 
+	rows, err := dbConn.Query(`SELECT host_key as Domain, expires_utc as Expires,
+                is_httponly as HttpOnly, name as Name, path as Path,
+                is_secure as Secure, value as Value, encrypted_value as EncryptedValue
                 FROM cookies;`)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func ReadBraveCookies() ([]Cookie, error) {
 		cookies = append(cookies, cookie)
 	}
 	return cookies, nil
-}
+}*/
 
 func ReadBravePasswords() ([]Password, error) {
 	osUser, err := utils.GetCurrentUsername()
