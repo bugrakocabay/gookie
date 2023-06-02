@@ -100,7 +100,6 @@ func ReadEdgePasswords() ([]Password, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println(password)
 		password.PasswordDecrypted = string(decrypted)
 		password.PasswordEncrypted = nil
 		passwords = append(passwords, password)
