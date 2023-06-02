@@ -1,4 +1,4 @@
-package browser
+package chromium
 
 import (
 	"crypto/aes"

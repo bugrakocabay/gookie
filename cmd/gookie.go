@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	data, err := browser.GetAllBrowserData()
+	data, err := chromium.GetAllBrowserData()
 	if err != nil {
 		panic(err)
 	}
