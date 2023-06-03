@@ -1,14 +1,6 @@
-github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe23fU=
-github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=
-github.com/havoc-io/go-keytar v0.0.0-20190805193312-c9afc30c49ac h1:eaeUF94PxN+op5u4b8qSUEHMORA8Dho4vHaU4MRD7Sg=
-github.com/havoc-io/go-keytar v0.0.0-20190805193312-c9afc30c49ac/go.mod h1:WUcW8txQ1HQfzCSD8PwGkPAHcz6rl/lX5nRRC+9utUo=
-github.com/keybase/go-keychain v0.0.0-20230307172405-3e4884637dd1 h1:yi1W8qcFJ2plmaGJFN1npm0KQviWPMCtQOYuwDT6Swk=
-github.com/keybase/go-keychain v0.0.0-20230307172405-3e4884637dd1/go.mod h1:qDHUvIjGZJUtdPtuP4WMu5/U4aVWbFw1MhlkJqCGmCQ=
 github.com/mattn/go-sqlite3 v1.14.16 h1:yOQRA0RpS5PFz/oikGwBEqvAWhWg5ufRz4ETLjwpU1Y=
 github.com/mattn/go-sqlite3 v1.14.16/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
 golang.org/x/crypto v0.9.0 h1:LF6fAI+IutBocDJ2OT0Q1g8plpYljMZ4+lty+dsqw3g=
 golang.org/x/crypto v0.9.0/go.mod h1:yrmDGqONDYtNj3tH8X9dzUun2m2lzPa9ngI6/RUPGR0=
-golang.org/x/net v0.10.0 h1:X2//UzNDwYmtCLn7To6G58Wr6f5ahEAQgKNzv9Y951M=
-golang.org/x/net v0.10.0/go.mod h1:0qNGK6F8kojg2nk9dLZ2mShWaEBan6FAoqfSigmmuDg=
 golang.org/x/sys v0.8.0 h1:EBmGv8NaZBZTWvrbjNoL6HVt+IVy3QDQpJs7VRIw3tU=
 golang.org/x/sys v0.8.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
