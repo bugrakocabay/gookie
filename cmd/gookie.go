@@ -1,17 +1,17 @@
 package main
 
 import (
-	"gookie/pkg/browser"
+	"gookie/pkg/user"
 	"gookie/pkg/utils"
 )
 
 func main() {
-	data, err := chromium.GetAllBrowserData()
+	data, err := user.ReturnUserData()
 	if err != nil {
 		panic(err)
 	}
 
-	err = utils.JSONSaver(data, "wow.json")
+	err = utils.JSONSaver(data, "user.json")
 	if err != nil {
 		panic(err)
 	}
