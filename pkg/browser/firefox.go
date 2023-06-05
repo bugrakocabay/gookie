@@ -1,4 +1,4 @@
-package chromium
+package browser
 
 import (
 	"crypto/aes"
@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gookie/pkg/browser/chromium"
 	"os"
 	"path/filepath"
 
@@ -87,7 +88,7 @@ type KeyData struct {
 	Data           []byte
 }
 
-func ReadFirefoxPasswords() ([]Password, error) {
+func ReadFirefoxPasswords() ([]chromium.Password, error) {
 	profilePath, err := getActiveProfilePath()
 	if err != nil {
 		return nil, err
@@ -101,7 +102,7 @@ func ReadFirefoxPasswords() ([]Password, error) {
 	return credentials, nil
 }
 
-func ReadFirefoxCookies() ([]Cookie, error) {
+func ReadFirefoxCookies() ([]chromium.Cookie, error) {
 	profilePath, err := getActiveProfilePath()
 	if err != nil {
 		return nil, err
@@ -124,10 +125,10 @@ func ReadFirefoxCookies() ([]Cookie, error) {
 	}
 	defer rows.Close()
 
-	var cookies []Cookie
+	var cookies []chromium.Cookie
 
 	for rows.Next() {
-		var cookie Cookie
+		var cookie chromium.Cookie
 		var expires, httpOnly, secure int64
 
 		err = rows.Scan(&cookie.Domain, &expires, &httpOnly, &cookie.Name,
@@ -204,7 +205,7 @@ func decodeLoginData(data string) ([]byte, []byte, []byte, error) {
 	return x.KeyIdentifier, x.DataSequence.Data, x.CipherText, nil
 }
 
-func FirefoxCrackLoginData(profilePath string) ([]Password, error) {
+func FirefoxCrackLoginData(profilePath string) ([]chromium.Password, error) {
 	key4Path := filepath.Join(profilePath, "key4.db")
 
 	if _, err := os.Stat(key4Path); err != nil {
@@ -264,7 +265,7 @@ func FirefoxCrackLoginData(profilePath string) ([]Password, error) {
 		return nil, fmt.Errorf("failed to load logins data: %w", err)
 	}
 
-	var credentials []Password
+	var credentials []chromium.Password
 	for _, login := range logins.Logins {
 		_, y, z, err := decodeLoginData(login.EncryptedUsername)
 		if err != nil {
@@ -286,7 +287,7 @@ func FirefoxCrackLoginData(profilePath string) ([]Password, error) {
 			return nil, fmt.Errorf("failed to decrypt Triple DES: %w", err)
 		}
 
-		credentials = append(credentials, Password{login.Hostname, string(username), string(password), nil})
+		credentials = append(credentials, chromium.Password{login.Hostname, string(username), string(password), nil})
 	}
 
 	return credentials, nil
